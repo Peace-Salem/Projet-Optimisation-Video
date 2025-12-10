@@ -1,0 +1,13 @@
+# Ignore Python virtual environment
+venv/
+
+# Ignore datasets
+data/
+
+# Ignore output files
+*.out
+*.mps
+*.log
+
+# Ignore PDF files dans videos
+videos/*.pdf
