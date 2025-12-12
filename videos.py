@@ -6,13 +6,11 @@ videos.py
 
 Script principal pour le projet Hash Code 2017 - Streaming videos.
 Lit un dataset, construit un modèle Gurobi, l'écrit en .mps, résout,
-et produit un fichier videos.out au format attendu.
+et produit un fichier videos.out.
 
-Usage (dans la racine du projet) :
-    python videos.py data/example.in
-    python videos.py data/trending_4000_10k.in
 """
 
+"""1. Package"""
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -27,7 +25,7 @@ from gurobipy import GRB
 
 def parse_input(path):
     """
-    Lit le fichier d'entrée HashCode et renvoie une structure de données Python.
+    2. Lit le fichier d'entrée HashCode et renvoie une structure de données Python.
 
     Format d'entrée :
         V E R C X
@@ -106,7 +104,7 @@ def parse_input(path):
 
 def preprocess_requests(data):
     """
-    Agrège les requêtes par paire (endpoint, video) pour faciliter le modèle.
+    3. Agrège les requêtes par paire (endpoint, video) pour faciliter le modèle.
 
     R_e_v[e][v] = total des requêtes de la vidéo v depuis l'endpoint e.
     """
@@ -123,7 +121,7 @@ def preprocess_requests(data):
 
 def build_model(data):
     """
-    Construit le modèle Gurobi à partir des données.
+    4. Construit le modèle Gurobi à partir des données.
 
     Variables :
         x[v,c] = 1 si vidéo v stockée sur cache c
@@ -155,7 +153,7 @@ def build_model(data):
     m.Params.MIPGap = 5e-3  # écart d'optimalité max
     # m.Params.TimeLimit = 300  # optionnel : limite de temps en secondes
 
-    # 1) Variables x[v,c] : vidéo v dans cache c ?
+    # 4.1) Variables x[v,c] : vidéo v dans cache c ?
     print("[INFO] Création des variables x[v,c]...")
     x = {}
     for v in range(V):
@@ -169,7 +167,7 @@ def build_model(data):
             )
     m.update()
 
-    # 2) Variables y[e,v,c] : requêtes (e,v) servies par cache c ?
+    # 4.2) Variables y[e,v,c] : requêtes (e,v) servies par cache c ?
     print("[INFO] Création des variables y[e,v,c]...")
     y = {}
     for e in range(E):
@@ -188,7 +186,7 @@ def build_model(data):
                     )
     m.update()
 
-    # 3) Contraintes de capacité des caches
+    # 4.3) Contraintes de capacité des caches
     print("[INFO] Ajout des contraintes de capacité...")
     for c in range(C):
         expr = gp.LinExpr()
@@ -198,7 +196,7 @@ def build_model(data):
         if expr.size() > 0:
             m.addConstr(expr <= X, name=f"cap_{c}")
 
-    # 4) Lien y <= x
+    # 4.4) Lien y <= x
     print("[INFO] Ajout des contraintes de liaison y <= x...")
     for (e, v, c), y_var in y.items():
         if (v, c) in x:
@@ -207,7 +205,7 @@ def build_model(data):
             # sécurité : si jamais pas de x[v,c], forcer y à 0
             m.addConstr(y_var <= 0, name=f"nolink_{e}_{v}_{c}")
 
-    # 5) Au plus un cache par (e,v)
+    # 4.5) Au plus un cache par (e,v)
     print("[INFO] Ajout des contraintes 'au plus un cache par (e,v)'...")
     for e in range(E):
         cache_lat = endpoints[e]["cache_lat"]
@@ -219,7 +217,7 @@ def build_model(data):
             if expr.size() > 0:
                 m.addConstr(expr <= 1, name=f"onecache_{e}_{v}")
 
-    # 6) Objectif : maximiser le temps total économisé
+    # 4.6) Objectif : maximiser le temps total économisé
     print("[INFO] Construction de la fonction objectif...")
     obj = gp.LinExpr()
     for (e, v, c), y_var in y.items():
